@@ -31,16 +31,13 @@ function tetris() {
 	return board
 }
 
-function clearPiece(board, left) {
-	let side = ''
-	if(typeof left === 'boolean') {
-		side = left ? '.left' : ':not(.left)'
-	}
-	const selector = side + '.player'
-	const cells = board.querySelectorAll(selector)
-	for(const cell of cells) {
-		cell.classList.remove('player')
-	}
+function playerClass(left) {
+	return (left ? 'left' : 'right') + '-player'
+}
+
+function clearClass(board, cls) {
+	const cells = board.querySelectorAll('.'+cls)
+	for(const cell of cells) cell.classList.remove(cls)
 }
 
 function at(board, x, y) {
@@ -48,7 +45,7 @@ function at(board, x, y) {
 }
 
 function matches(cell, left) {
-	return cell && left === cell.classList.contains('left')
+	return !!cell && left === cell.classList.contains('left')
 }
 
 function set(cell, left) {
@@ -58,59 +55,69 @@ function set(cell, left) {
 	}
 }
 
-function setPiece(cell) {
-	cell && cell.classList.add('player')
+function mark(cell, ...c) {
+	cell && cell.classList.add(...c)
 }
 
-function collapseLine(board, x, leftPlayer) {
-	const dx = leftPlayer ? -1 : 1
+function isCompleteLine(board, x, left) {
 	const rows = board.rows
-	for(let r=0; r<rows.length; ++r) {
-		const cells = rows[r].cells
-		for(let c=x; c>0 && c<cells.length-1; c+=dx) {
-			set(cells[c], matches(cells[c+dx], true))
-		}
-	}
-}
-
-function isCompleteLine(board, x, leftPlayer) {
-	const rows = board.rows
-	for(let r=0; r<rows.length; ++r) {
-		if(matches(rows[r].cells[x], leftPlayer)) {
-			return false
-		}
+	for(let y=0; y<rows.length; ++y) {
+		if(matches(rows[y].cells[x], left)) return false
 	}
 	return true
 }
 
-function linesOfPiece(board, piece) {
-	const lines = []
-	forPiece(board, piece, function(cell,x) {
-		if(lines[lines.length-1] !== x) lines.push(x)
-	})
-	if(!piece.left) lines.reverse()
-	return lines
+function lockLine(board, x) {
+	for(let y=0; y<board.rows.length; ++y) {
+		mark(at(board, x, y), 'locked')
+	}
 }
 
-function completeLines(board, piece) {
-	return linesOfPiece(board, piece)
-		.filter(l=>isCompleteLine(board, l, piece.left))
+function lockCompleteLines(board, left) {
+	const cells = board.querySelectorAll('.'+playerClass(left))
+	let cleared = 0
+	for(const cell of cells) {
+		const x = cell.cellIndex
+		if(isCompleteLine(board, x, left)) {
+			lockLine(board, x)
+			++cleared
+		}
+	}
+	return cleared
 }
 
-function maybeCollapseLines(board, piece) {
-	for(const l of completeLines(board, piece)) {
-		collapseLine(board, l, piece.left)
+function collapseLine(board, l, left) {
+	const rows = board.rows
+	const W = rows[0].cells.length
+	const dx = left ? -1 : 1
+	for(let y=0; y<rows.length; ++y) {
+		for(let x=l; x>=1 && x<W-1; x+=dx) {
+			at(board, x, y).className = at(board, x+dx, y).className
+		}
+	}
+}
+
+function collapseLockedLines(board, left) {
+	const W = board.rows[0].cells.length
+	const x0 = left ? 1 : W-2
+	const dx = left ? 1 : -1
+	for(let x=x0; x>=1 && x<W-1; x+=dx) {
+		if(at(board, x, 0).classList.contains('locked')) {
+			collapseLine(board, x, left)
+		}
 	}
 }
 
 function forPiece(board, piece, fn, ...args) {
 	const shape = piece.shapes[piece.r%piece.shapes.length]
+	if(shape == null) console.log(piece)
 	const size = Math.sqrt(shape.length)
-	const offset = piece.left ? Math.ceil(size/2) : Math.floor(size/2)
-	const x = piece.x - offset, y = piece.y - offset
+	const offset = Math.ceil(size/2)
+	const sx = piece.left ? 1 : -1
+	const x = piece.x - sx*offset, y = piece.y - offset
 	for(let dx=0; dx<size; ++dx) {
 		for(let dy=0; dy<size; ++dy) {
-			const cell = at(board, x+dx, y+dy)
+			const cell = at(board, x+sx*dx, y+dy)
 			const piece = shape[dx*size+dy] === 1
 			if(piece && fn(cell, x, y, ...args) === false) return false
 		}
@@ -123,7 +130,7 @@ function pieceFits(board, piece) {
 }
 
 function drawPiece(board, piece) {
-	forPiece(board, piece, (c) => setPiece(c))
+	forPiece(board, piece, c => mark(c, playerClass(piece.left)))
 }
 
 function movePiece(board, piece, change) {
@@ -131,9 +138,10 @@ function movePiece(board, piece, change) {
 	piece.x += change.x || 0
 	piece.y += change.y || 0
 	piece.r += change.r || 0
+	piece.r = ((piece.r % 4) + 4) % 4
 	const success = pieceFits(board, piece)
 	if(success) {
-		clearPiece(board, piece.left)
+		clearClass(board, playerClass(piece.left))
 		drawPiece(board, piece)
 	} else {
 		piece.x = x
@@ -144,20 +152,17 @@ function movePiece(board, piece, change) {
 }
 
 function lockPiece(board, piece) {
-	clearPiece(board, piece.left)
-	forPiece(board, piece, (c)=>set(c, !piece.left))
+	forPiece(board, piece, c => set(c, !piece.left))
 }
 
 function dropPiece(board, piece) {
-	const ok = movePiece(board, piece, {x: piece.left ? 1 : -1})
-	if(!ok) lockPiece(board, piece)
-	return ok
+	return movePiece(board, piece, {x: piece.left ? 1 : -1})
 }
 
-function randomShape(pieces) {
-	const names = Object.keys(pieces)
+function randomShape(shapes) {
+	const names = Object.keys(shapes)
 	const n = Math.floor(names.length * Math.random())
-	return pieces[names[n]]
+	return shapes[names[n]]
 }
 
 function newPiece(shapes, x, y, r, left) {
@@ -169,12 +174,12 @@ function newPiece(shapes, x, y, r, left) {
 	}
 }
 
-const pieces = {
+const shapes = {
 	I: [
 		[
 			0,0,0,0,
-			1,1,1,1,
 			0,0,0,0,
+			1,1,1,1,
 			0,0,0,0
 		],
 		[
@@ -182,156 +187,220 @@ const pieces = {
 			0,0,1,0,
 			0,0,1,0,
 			0,0,1,0
-		],
-		[
-			0,0,0,0,
-			0,0,0,0,
-			1,1,1,1,
-			0,0,0,0
-		],
-		[
-			0,1,0,0,
-			0,1,0,0,
-			0,1,0,0,
-			0,1,0,0
-		],
+		]
 	],
 	J: [
 		[
+			0,0,0,
+			1,1,1,
+			0,0,1,
+		],
+		[
+			0,1,0,
+			0,1,0,
+			1,1,0,
+		],
+		[
+			0,0,0,
 			1,0,0,
 			1,1,1,
-			0,0,0
 		],
 		[
 			0,1,1,
 			0,1,0,
-			0,1,0
-		],
-		[
-			0,0,0,
-			1,1,1,
-			0,0,1
-		],
-		[
 			0,1,0,
-			0,1,0,
-			1,1,0
-		]
+		],
 	],
 	L: [
 		[
-			0,0,1,
-			1,1,1,
-			0,0,0
-		],
-		[
-			0,1,0,
-			0,1,0,
-			0,1,1
-		],
-		[
 			0,0,0,
 			1,1,1,
-			1,0,0
+			1,0,0,
 		],
 		[
 			1,1,0,
 			0,1,0,
-			0,1,0
-		]
+			0,1,0,
+		],
+		[
+			0,0,0,
+			0,0,1,
+			1,1,1,
+		],
+		[
+			0,1,0,
+			0,1,0,
+			0,1,1,
+		],
 	],
 	O: [
 		[
 			1,1,
-			1,1
+			1,1,
 		]
 	],
 	S: [
 		[
-			0,1,1,
-			1,1,0,
-			0,0,0
-		],
-		[
-			0,1,0,
-			0,1,1,
-			0,0,1
-		],
-		[
 			0,0,0,
 			0,1,1,
-			1,1,0
+			1,1,0,
 		],
 		[
 			1,0,0,
 			1,1,0,
-			0,1,0
-		]
+			0,1,0,
+		],
 	],
 	T: [
 		[
-			0,1,0,
-			1,1,1,
-			0,0,0
-		],
-		[
-			0,1,0,
-			0,1,1,
-			0,1,0
-		],
-		[
 			0,0,0,
 			1,1,1,
-			0,1,0
+			0,1,0,
 		],
 		[
 			0,1,0,
 			1,1,0,
-			0,1,0
+			0,1,0,
+		],
+		[
+			0,0,0,
+			0,1,0,
+			1,1,1,
+		],
+		[
+			0,1,0,
+			0,1,1,
+			0,1,0,
 		],
 	],
 	Z: [
 		[
+			0,0,0,
 			1,1,0,
 			0,1,1,
-			0,0,0
 		],
 		[
 			0,0,1,
 			0,1,1,
-			0,1,0
-		],
-		[
-			0,0,0,
-			1,1,0,
-			0,1,1
-		],
-		[
 			0,1,0,
-			1,1,0,
-			1,0,0
-		]
+		],
 	]
 }
 
-const T = tetris()
-const t = 250  // milliseconds per step
-
-let P = [
-	newPiece(randomShape(pieces), 1, 5, 0, true),
-	newPiece(pieces.T, 39, 5, 2, false)
-]
-set(at(T, 19, 5), false)
-function drop() {
-	let dropped = 0
-	for(const p of P) {
-		const d = dropPiece(T, p)
-		if(d) ++dropped
-		else setTimeout(()=>maybeCollapseLines(T, p), t)
-	}
-	if(dropped > 0) setTimeout(drop, t)
-	else clearPiece(T)
+function Player(x0, y0, left, stepTime, keys) {
+	this.x0 = x0;  this.y0 = y0;  this.left = left
+	this.dt = stepTime
+	this.keys = {}
+	this.keys[keys[0]] = 'up'
+	this.keys[keys[1]] = left ? 'rotate' : 'drop'
+	this.keys[keys[2]] = 'down'
+	this.keys[keys[3]] = left ? 'drop' : 'rotate'
+	this.pressed = {}
+	this.shapes = shapes
+	this.cleared = 0
+	this.spawn()
 }
 
-for(const p of P) drawPiece(T, p)
-setTimeout(drop, t)
+Player.prototype.spawn = function() {
+	const shape = randomShape(this.shapes)
+	this.piece = newPiece(shape, this.x0, this.y0, 0, this.left)
+	this.t = 0
+}
+
+Player.prototype.update = function(dt) {
+	this.t += dt
+	const step = (this.pressed.drop && !this.wait) ? 100 : this.dt
+	while(this.t >= step) {
+		this.t -= step
+		if(this.piece) {
+			const fell = dropPiece(T, this.piece)
+			if(!fell) {
+				lockPiece(T, this.piece)
+				delete this.piece
+			}
+		} else if(this.wait) {
+			delete this.wait
+		} else {
+			collapseLockedLines(T, this.left)
+			this.spawn()
+		}
+	}
+	return !this.piece
+}
+
+Player.prototype.maybeLockLines = function() {
+	if(!this.piece) {
+		const locked = lockCompleteLines(T, this.left)
+		this.cleared += locked
+		clearClass(T, playerClass(this.left))
+		if(locked > 0) {
+			this.wait = true
+			this.t = this.dt/2
+		}
+	}
+}
+
+Player.prototype.input = function(ctrl) {
+	if(this.piece == null) return
+	let change
+	switch(ctrl) {
+		case 'up':     change = {y: -1}; break
+		case 'down':   change = {y: 1};  break
+		case 'rotate': change = {r: 1};  break
+	}
+	if(change != null) movePiece(T, this.piece, change)
+}
+
+const T = tetris()
+const t = 500  // milliseconds per step
+let pause = false
+
+const Players = [
+	new Player(0, 5, true, t, [190, 79, 69, 85]),  // .oeu
+	new Player(39, 5, false, t, [67, 72, 84, 78])  // chtn
+]
+for(const p of Players) drawPiece(T, p.piece)
+
+let t0
+const dtMax = 100
+function run(t) {
+	const dt = (t0 == null || pause) ? 0 : t - t0
+	t0 = t
+	if(dt <= dtMax)  {
+		for(const p of Players) p.update(dt)
+		for(const p of Players) p.maybeLockLines()
+		Players.reverse()
+	}
+	requestAnimationFrame(run)
+}
+
+
+function keydown(e) {
+	if(e.isComposing || e.keyCode === 229) return
+	if(e.keyCode === 80) pause = !pause  // P to toggle pause
+	for(const p of Players) {
+		const ctrl = p.keys[e.keyCode]
+		if(ctrl) {
+			p.pressed[ctrl] = true
+			p.input(ctrl)
+		}
+	}
+}
+
+function keyup(e) {
+	if(e.isComposing || e.keyCode === 229) return
+	for(const p of Players) {
+		const ctrl = p.keys[e.keyCode]
+		if(ctrl) p.pressed[ctrl] = false
+	}
+}
+
+function start() {
+	document.body.addEventListener('keydown', keydown)
+	document.body.addEventListener('keyup', keyup)
+
+	if(Math.random() < 0.5) Players.reverse()
+	requestAnimationFrame(run)
+}
+
+start()
