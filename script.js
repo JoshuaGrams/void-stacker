@@ -356,8 +356,8 @@ const t = 500  // milliseconds per step
 let pause = false
 
 const Players = [
-	new Player(0, 5, true, t, [190, 79, 69, 85]),  // .oeu
-	new Player(39, 5, false, t, [67, 72, 84, 78])  // chtn
+	new Player(0, 5, true, t, ['KeyE', 'KeyS', 'KeyD', 'KeyF']),
+	new Player(39, 5, false, t, ['KeyI', 'KeyJ', 'KeyK', 'KeyL'])
 ]
 for(const p of Players) drawPiece(T, p.piece)
 
@@ -377,9 +377,9 @@ function run(t) {
 
 function keydown(e) {
 	if(e.isComposing || e.keyCode === 229) return
-	if(e.keyCode === 80) pause = !pause  // P to toggle pause
+	if(e.code === 'KeyP') pause = !pause
 	for(const p of Players) {
-		const ctrl = p.keys[e.keyCode]
+		const ctrl = p.keys[e.code]
 		if(ctrl) {
 			p.pressed[ctrl] = true
 			p.input(ctrl)
@@ -390,7 +390,7 @@ function keydown(e) {
 function keyup(e) {
 	if(e.isComposing || e.keyCode === 229) return
 	for(const p of Players) {
-		const ctrl = p.keys[e.keyCode]
+		const ctrl = p.keys[e.code]
 		if(ctrl) p.pressed[ctrl] = false
 	}
 }
