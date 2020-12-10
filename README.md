@@ -1,5 +1,10 @@
 Two-player competitive brick-stacker where your bricks are the
 other player's empty space.
 
-Controls: ESDF and IJKL, but in Dvorak, sorry. P pauses and
-unpauses the game.
+Controls
+--------
+
+ESDF and IJKL. Or whatever keys are in those QWERTY positions,
+because apparently browsers have scancodes now? Cool.
+
+P pauses and unpauses the game.

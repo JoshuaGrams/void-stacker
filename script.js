@@ -377,7 +377,7 @@ function run(t) {
 
 function keydown(e) {
 	if(e.isComposing || e.keyCode === 229) return
-	if(e.code === 'KeyP') pause = !pause
+	if(e.key === 'p') pause = !pause
 	for(const p of Players) {
 		const ctrl = p.keys[e.code]
 		if(ctrl) {
