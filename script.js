@@ -346,7 +346,7 @@ Player.prototype.input = function(ctrl) {
 	switch(ctrl) {
 		case 'up':     change = {y: -1}; break
 		case 'down':   change = {y: 1};  break
-		case 'rotate': change = {r: 1};  break
+		case 'rotate': change = {r: this.left ? 1 : -1};  break
 	}
 	if(change != null) movePiece(T, this.piece, change)
 }
