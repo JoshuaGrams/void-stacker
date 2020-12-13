@@ -401,13 +401,20 @@ Player.prototype.maybeLockLines = function() {
 
 Player.prototype.input = function(ctrl) {
 	if(this.piece == null) return
-	let change
 	switch(ctrl) {
-		case 'up':     change = {y: -1}; break
-		case 'down':   change = {y: 1};  break
-		case 'rotate': change = {r: this.left ? 1 : -1};  break
+		case 'up':     movePiece(T, this.piece, {y: -1}); break
+		case 'down':   movePiece(T, this.piece, {y: 1});  break
+		case 'rotate':
+			const change = {r: this.left ? 1 : -1};
+			if(!movePiece(T, this.piece, change)) {
+				change.y = -1
+				if(!movePiece(T, this.piece, change)) {
+					change.y = 1
+					movePiece(T, this.piece, change)
+				}
+			}
+			break
 	}
-	if(change != null) movePiece(T, this.piece, change)
 }
 
 const T = tetris()
