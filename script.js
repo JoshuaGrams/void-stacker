@@ -368,7 +368,7 @@ Player.prototype.update = function(dt) {
 	this.t += dt
 	let step = this.dt
 	if(this.pressed.drop && !this.wait) {
-		step = 100
+		step = 33
 		this.t = Math.min(this.t, step)
 	}
 	while(this.t >= step) {
