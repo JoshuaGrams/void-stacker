@@ -39,8 +39,8 @@ td { background: #fff; }
 td.left { background: #000; }
 .even td.left { background: #222; }
 
-td.left-player, .even td.left-player { background: #e66; }
-td.right-player, .even td.right-player { background: #188; }
+td.left-player, .even td.left-player { background: #ddd; }
+td.right-player, .even td.right-player { background: #333; }
 
-td.left.locked, .even td.left.locked { background: #6aa; }
-td.locked, .even td.locked { background: #c88; }
+td.left.locked, .even td.left.locked { background: #444; }
+td.locked, .even td.locked { background: #ccc; }
