@@ -309,7 +309,11 @@ Player.prototype.spawn = function() {
 
 Player.prototype.update = function(dt) {
 	this.t += dt
-	const step = (this.pressed.drop && !this.wait) ? 100 : this.dt
+	let step = this.dt
+	if(this.pressed.drop && !this.wait) {
+		step = 100
+		this.t = Math.min(this.t, step)
+	}
 	while(this.t >= step) {
 		this.t -= step
 		if(this.piece) {
