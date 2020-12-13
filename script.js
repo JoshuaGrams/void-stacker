@@ -127,10 +127,11 @@ function forPiece(board, piece, fn, ...args) {
 	const size = Math.sqrt(shape.length)
 	const offset = Math.ceil(size/2)
 	const sx = piece.left ? 1 : -1
-	const x = piece.x - sx*offset, y = piece.y - offset
+	const x0 = piece.x - sx*offset, y0 = piece.y - offset
 	for(let dx=0; dx<size; ++dx) {
 		for(let dy=0; dy<size; ++dy) {
-			const cell = at(board, x+sx*dx, y+dy)
+			const x = x0 + sx*dx, y = y0+dy
+			const cell = at(board, x, y)
 			const piece = shape[dx*size+dy] === 1
 			if(piece && fn(cell, x, y, ...args) === false) return false
 		}
@@ -139,7 +140,9 @@ function forPiece(board, piece, fn, ...args) {
 }
 
 function pieceFits(board, piece) {
-	return forPiece(board, piece, (c,x,y,f)=>matches(c,f), piece.left)
+	return forPiece(board, piece,
+		(c,x,y,f) => x<0 || x>39 || matches(c,f),
+		piece.left)
 }
 
 function drawPiece(board, piece) {
