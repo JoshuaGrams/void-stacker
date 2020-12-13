@@ -115,7 +115,8 @@ function collapseLockedLines(board, left) {
 	const x0 = left ? 1 : W-2
 	const dx = left ? 1 : -1
 	for(let x=x0; x>=1 && x<W-1; x+=dx) {
-		if(at(board, x, 0).classList.contains('locked')) {
+		const classes = at(board, x, 0).classList
+		if(classes.contains('locked') && classes.contains('left') !== left) {
 			collapseLine(board, x, left)
 		}
 	}
