@@ -176,9 +176,11 @@ function dropPiece(board, piece) {
 }
 
 function randomShape(shapes) {
-	const names = Object.keys(shapes)
-	const n = Math.floor(names.length * Math.random())
-	return shapes[names[n]]
+	const u = Math.random()
+	const n = Math.floor(shapes.length * u*u)
+	const shape = shapes.splice(n, 1)[0]
+	shapes.push(shape)
+	return shape
 }
 
 function newPiece(shapes, x, y, r, left) {
@@ -340,7 +342,7 @@ function Player(x0, y0, left, stepTime, keys) {
 	this.keys[keys[2]] = 'down'
 	this.keys[keys[3]] = left ? 'drop' : 'rotate'
 	this.pressed = {}
-	this.shapes = shapes
+	this.shapes = Object.values(shapes)
 	this.cleared = 0
 	this.preview = document.body.querySelector((left?'.left':'.right') + '-preview table')
 	this.nextShape = randomShape(this.shapes)
