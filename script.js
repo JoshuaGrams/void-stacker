@@ -15,12 +15,25 @@ function N(t, ...args) {
 	return e
 }
 
+function preview(classPrefix) {
+	let tbl
+	const preview = N('div', {class: classPrefix + '-preview'},
+		tbl = N('table'))
+	for(let y=0; y<4; ++y) {
+		let row
+		N(tbl, row = N('tr'))
+		for(let x=0; x<4; ++x) N(row, N('td'))
+	}
+	return preview
+}
+
 function tetris() {
 	let board
 	N(document.body,
 		N('div', {class: 'outer'},
 			N('div', {class: 'inner'},
-				board = N('table'))))
+				board = N('table')),
+		preview('left'), preview('right')))
 	for(let y=0; y<10; ++y) {
 		let row
 		N(board, row = N('tr', {class: y%2 === 0 ? 'even' : ''}))
@@ -326,13 +339,24 @@ function Player(x0, y0, left, stepTime, keys) {
 	this.pressed = {}
 	this.shapes = shapes
 	this.cleared = 0
+	this.preview = document.body.querySelector((left?'.left':'.right') + '-preview table')
+	this.nextShape = randomShape(this.shapes)
 	this.spawn()
 }
 
 Player.prototype.spawn = function() {
-	const shape = randomShape(this.shapes)
-	this.piece = newPiece(shape, this.x0, this.y0, 0, this.left)
+	this.piece = newPiece(this.nextShape, this.x0, this.y0, 0, this.left)
 	this.t = 0
+	this.nextShape = randomShape(this.shapes)
+	const sh = this.nextShape[0]
+	const sz = Math.sqrt(sh.length)
+	let x = 2, y = 2
+	if(!this.left) --x
+	clearClass(this.preview, playerClass(this.left))
+	drawPiece(this.preview, {
+		x: x,  y: y,  r: this.left ? 0 : 2,  left: this.left,
+		shapes: this.nextShape
+	})
 }
 
 Player.prototype.update = function(dt) {

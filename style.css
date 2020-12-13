@@ -33,6 +33,16 @@ table {
 	border-collapse: collapse;
 }
 
+.left-preview, .right-preview {
+	position: absolute;
+	width: 4vw;
+	height: 4vw;
+	top: 1vw;
+}
+.left-preview { left: 1vw; }
+.right-preview { right: 1vw; }
+.left-preview td, .right-preview td { background: #997; }
+
 td { background: #fff; }
 .even td { background: #eee; }
 
