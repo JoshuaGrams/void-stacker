@@ -423,6 +423,8 @@ Player.prototype.input = function(ctrl) {
 const T = tetris()
 const t = 500  // milliseconds per step
 let pause = false
+for(let y=0; y<5; ++y) set(at(T, 20, y), y !== 2)
+for(let y=5; y<10; ++y) set(at(T, 19, y), y === 7)
 
 const Players = [
 	new Player(0, 5, true, t, ['KeyE', 'KeyS', 'KeyD', 'KeyF']),
