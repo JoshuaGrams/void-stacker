@@ -337,20 +337,28 @@ const shapes = {
 function Player(x0, y0, left, stepTime, keys) {
 	this.x0 = x0;  this.y0 = y0;  this.left = left
 	this.dt = stepTime
+	this.repeatDelay = 66
 	this.keys = {}
 	this.keys[keys[0]] = 'up'
 	this.keys[keys[1]] = left ? 'rotate' : 'drop'
 	this.keys[keys[2]] = 'down'
 	this.keys[keys[3]] = left ? 'drop' : 'rotate'
-	this.pressed = {}
 	this.shapes = Object.values(shapes)
-	this.cleared = 0
 	this.preview = document.body.querySelector((left?'.left':'.right') + '-preview table')
+	this.reset()
+}
+
+Player.prototype.reset = function() {
+	this.repeatTimeout = null
+	this.repeatCtrl = null
+	this.pressed = {}
+	this.cleared = 0
 	this.nextShape = randomShape(this.shapes)
 	this.spawn()
 }
 
 Player.prototype.spawn = function() {
+	this.pressed.drop = false
 	this.piece = newPiece(this.nextShape, this.x0, this.y0, 0, this.left)
 	this.t = 0
 	this.nextShape = randomShape(this.shapes)
@@ -363,11 +371,27 @@ Player.prototype.spawn = function() {
 		x: x,  y: y,  r: this.left ? 0 : 2,  left: this.left,
 		shapes: this.nextShape
 	})
+	if(!pieceFits(T, this.piece)) {
+		pause = true
+		gameOver = Date.now()
+		document.body.className = 'gameOver'
+	}
 }
 
 Player.prototype.update = function(dt) {
 	this.t += dt
 	let step = this.dt
+	if(this.repeatTimeout != null) {
+		if(this.pressed[this.repeatCtrl]) {
+			this.repeatTimeout -= dt
+			if(this.repeatTimeout < 0) {
+				this.repeatTimeout += this.repeatDelay
+				this.move(this.repeatCtrl)
+			}
+		} else {
+			this.repeatTimeout = null
+		}
+	}
 	if(this.pressed.drop && !this.wait) {
 		step = 33
 		this.t = Math.min(this.t, step)
@@ -402,11 +426,11 @@ Player.prototype.maybeLockLines = function() {
 	}
 }
 
-Player.prototype.input = function(ctrl) {
+Player.prototype.move = function(ctrl) {
 	if(this.piece == null) return
 	switch(ctrl) {
-		case 'up':     movePiece(T, this.piece, {y: -1}); break
-		case 'down':   movePiece(T, this.piece, {y: 1});  break
+		case 'up': movePiece(T, this.piece, {y: -1}); break
+		case 'down': movePiece(T, this.piece, {y: 1}); break
 		case 'rotate':
 			const change = {r: this.left ? 1 : -1};
 			if(!movePiece(T, this.piece, change)) {
@@ -420,17 +444,33 @@ Player.prototype.input = function(ctrl) {
 	}
 }
 
+Player.prototype.input = function(ctrl) {
+	if(this.piece == null) return
+	const initialDelay = 3 * this.repeatDelay
+	switch(ctrl) {
+		case 'up':
+			this.repeatTimeout = initialDelay
+			this.repeatCtrl = 'up'
+			break
+		case 'down':
+			this.repeatTimeout = initialDelay
+			this.repeatCtrl = 'down'
+			break
+		case 'rotate': break
+		default: return
+	}
+	this.move(ctrl)
+}
+
 const T = tetris()
 const t = 500  // milliseconds per step
-let pause = false
-for(let y=0; y<5; ++y) set(at(T, 20, y), y !== 2)
-for(let y=5; y<10; ++y) set(at(T, 19, y), y === 7)
+let pause, gameOver
 
 const Players = [
 	new Player(0, 5, true, t, ['KeyE', 'KeyS', 'KeyD', 'KeyF']),
 	new Player(39, 5, false, t, ['KeyI', 'KeyJ', 'KeyK', 'KeyL'])
 ]
-for(const p of Players) drawPiece(T, p.piece)
+reset()
 
 let t0
 const dtMax = 100
@@ -445,10 +485,23 @@ function run(t) {
 	requestAnimationFrame(run)
 }
 
+function reset() {
+	document.body.className = ''
+	pause = false; gameOver = false
+	const cells = T.querySelectorAll('td')
+	for(const c of cells) {
+		if(c.cellIndex < 20) c.className = 'left'
+		else c.className = ''
+	}
+	for(let y=0; y<5; ++y) set(at(T, 20, y), y !== 2)
+	for(let y=5; y<10; ++y) set(at(T, 19, y), y === 7)
+	for(const p of Players) { p.reset(); drawPiece(T, p.piece) }
+}
 
 function keydown(e) {
-	if(e.isComposing || e.keyCode === 229) return
-	if(e.key === 'p') pause = !pause
+	if(e.isComposing || e.keyCode === 229 || e.repeat) return
+	if(gameOver && Date.now() - gameOver > 1000) reset()
+	if(e.key === 'p' && !gameOver) pause = !pause
 	for(const p of Players) {
 		const ctrl = p.keys[e.code]
 		if(ctrl) {

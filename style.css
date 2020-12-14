@@ -6,6 +6,8 @@ body {
 	background: #777;
 }
 
+body.gameOver { background: #c77; }
+
 .outer {
 	width: 100%;
 	max-width: 400vh;
