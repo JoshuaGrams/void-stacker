@@ -334,15 +334,20 @@ const shapes = {
 	],
 }
 
+function bind(bindings, key, action) {
+	if(typeof key == 'string') bindings[key] = action
+	else for(const k of key) bindings[k] = action
+}
+
 function Player(x0, y0, left, stepTime, keys) {
 	this.x0 = x0;  this.y0 = y0;  this.left = left
 	this.dt = stepTime
 	this.repeatDelay = 66
 	this.keys = {}
-	this.keys[keys[0]] = 'up'
-	this.keys[keys[1]] = left ? 'rotate' : 'drop'
-	this.keys[keys[2]] = 'down'
-	this.keys[keys[3]] = left ? 'drop' : 'rotate'
+	bind(this.keys, keys[0], 'up')
+	bind(this.keys, keys[1], left ? 'rotate' : 'drop')
+	bind(this.keys, keys[2], 'down')
+	bind(this.keys, keys[3], left ? 'drop' : 'rotate')
 	this.shapes = Object.values(shapes)
 	this.preview = document.body.querySelector((left?'.left':'.right') + '-preview table')
 	this.reset()
@@ -467,8 +472,13 @@ const t = 500  // milliseconds per step
 let pause, gameOver
 
 const Players = [
-	new Player(0, 5, true, t, ['KeyE', 'KeyS', 'KeyD', 'KeyF']),
-	new Player(39, 5, false, t, ['KeyI', 'KeyJ', 'KeyK', 'KeyL'])
+	new Player(0, 5, true, t, ['KeyW', 'KeyA', 'KeyS', 'KeyD']),
+	new Player(39, 5, false, t, [
+		['KeyI','ArrowUp'],
+		['KeyJ','ArrowLeft'],
+		['KeyK','ArrowDown'],
+		['KeyL','ArrowRight']
+	])
 ]
 reset()
 
